@@ -1,0 +1,104 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  version     Int
+  permissions String[]
+  comments    String[]
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key, status])
+  @@map("api_keys")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]   @relation("UserRoles")
+
+  @@index([code, status])
+  @@map("roles")
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  profilePicUrl String?
+  email         String?    @unique
+  password      String?
+  roles         Role[]     @relation("UserRoles")
+  verified      Boolean    @default(false)
+  status        Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  keystores     Keystore[]
+  authoredBlogs Blog[]     @relation("AuthorBlogs")
+  createdBlogs  Blog[]     @relation("CreatedBlogs")
+  updatedBlogs  Blog[]     @relation("UpdatedBlogs")
+
+  @@index([id, status])
+  @@index([status])
+  @@map("users")
+}
+
+model Keystore {
+  id           String   @id @default(cuid())
+  userId       String
+  client       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primaryKey   String
+  secondaryKey String
+  status       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, primaryKey, status])
+  @@index([userId, primaryKey, secondaryKey])
+  @@map("keystores")
+}
+
+model Blog {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  text        String?
+  draftText   String
+  tags        String[]
+  authorId    String
+  author      User      @relation("AuthorBlogs", fields: [authorId], references: [id], onDelete: Cascade)
+  imgUrl      String?
+  blogUrl     String    @unique
+  likes       Int       @default(0)
+  score       Float     @default(0.01)
+  isSubmitted Boolean   @default(false)
+  isDraft     Boolean   @default(true)
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  status      Boolean   @default(true)
+  createdById String
+  createdBy   User      @relation("CreatedBlogs", fields: [createdById], references: [id], onDelete: Cascade)
+  updatedById String
+  updatedBy   User      @relation("UpdatedBlogs", fields: [updatedById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([id, status])
+  @@index([blogUrl, status])
+  @@index([isPublished, status])
+  @@index([id, isPublished, status])
+  @@index([authorId])
+  @@map("blogs")
+}

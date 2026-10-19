@@ -1,0 +1,20 @@
+import ApiKeyRepo from '../database/repository/ApiKeyRepo';
+import { ForbiddenError } from '../core/ApiError';
+import { PublicRequest } from '../types/app-request';
+import schema from './schema';
+import validator, { ValidationSource } from '../helpers/validator';
+import { Header } from '../core/utils';
+import { FastifyReply } from 'fastify';
+
+const validateApiKeyHeader = validator(schema.apiKey, ValidationSource.HEADER);
+
+export default async (req: PublicRequest, _reply?: FastifyReply): Promise<void> => {
+  await validateApiKeyHeader(req);
+  const key = req.headers[Header.API_KEY]?.toString();
+  if (!key) throw new ForbiddenError();
+
+  const apiKey = await ApiKeyRepo.findByKey(key);
+  if (!apiKey) throw new ForbiddenError();
+
+  req.apiKey = apiKey;
+};
